@@ -1406,7 +1406,8 @@
         rosters[rosterName] = [...nameList];
         currentRosterName = rosterName;
         updateRosterOptions();
-        sendToGoogleSheets({ rosterName, roster: rosters[rosterName] });
+        // Send roster as JSON string for proper parsing on the server
+        sendToGoogleSheets({ rosterName, roster: JSON.stringify(rosters[rosterName]) });
         displaySuccessMessage('Roster saved successfully');
         saveToLocalStorage();
         logEvent(`Roster saved: ${rosterName}`);
