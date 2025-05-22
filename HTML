@@ -1318,24 +1318,7 @@
       updateScoreboard();
       updatePauseHeatmap();
     }
-    /***********************************
-     * Dashboard Points Chart (Horizontal Bar) Update
-     ***********************************/
-    function updateDashboardPointsChart() {
-      const leaderboardData = nameList.map((player, index) => ({
-        name: player.name,
-        points: (timerData[index] && timerData[index].points) || 0
-      }));
-      const labels = leaderboardData.map(d => d.name);
-      const data = leaderboardData.map(d => d.points);
-      const maxPoints = Math.max(...data, 0) + 1;
-      if (horizontalBarChart) {
-        horizontalBarChart.destroy();
-        horizontalBarChart = null;
-      }
-      const ctx = document.getElementById("horizontalBarChart").getContext("2d");
-      horizontalBarChart = new Chart(ctx, getPointsChartConfig(labels, data, maxPoints));
-    }
+
     
     /***********************************
      * Dashboard Charts Initialization (sample data)
