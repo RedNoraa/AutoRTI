@@ -1,2 +1,2 @@
 # AutoRTI
-repository for Auto RTI materials
+Repository for Auto RTI materials.
