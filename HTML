@@ -922,7 +922,7 @@
       logEvent(`Bonus point for ${nameList[index].name}. Total points: ${timerData[index].points}`);
       updateLeaderboard();
     }
-    // Gameplay leaderboard update (horizontal bar chart) – used in gameplay view.
+    // Updates leaderboard bar chart and refreshes the scoreboard table.
     function updateLeaderboard() {
       const leaderboardData = nameList.map((player, index) => ({
         name: player.name,
