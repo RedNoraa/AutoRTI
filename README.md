@@ -44,3 +44,21 @@ The HTML file can be opened directly in a browser or hosted on any static web se
 
 Once both the Apps Script and the HTML page are configured, loading the HTML page will communicate with your deployed web app and write data to the specified spreadsheet.
 
+
+## Development
+
+This project includes a small Jest test suite for validating the JavaScript logic used in the HTML file. To work on the tests or run them locally you will need Node.js installed (version 18 or newer is recommended).
+
+1. Install the development dependencies with:
+
+```bash
+npm install
+```
+
+2. Run the test suite using:
+
+```bash
+npm test
+```
+
+The `npm test` command runs Jest against the files in the `tests/` directory.
