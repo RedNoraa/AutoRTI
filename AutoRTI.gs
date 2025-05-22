@@ -1,5 +1,11 @@
 function doPost(e) {
-  var ss = SpreadsheetApp.openById('PASTE_YOUR_SPREADSHEET_ID_HERE');
+  // Read the spreadsheet ID from script properties
+  var props = PropertiesService.getScriptProperties();
+  var spreadsheetId = props.getProperty('SPREADSHEET_ID');
+  if (!spreadsheetId) {
+    throw new Error('Missing SPREADSHEET_ID script property');
+  }
+  var ss = SpreadsheetApp.openById(spreadsheetId);
   var data;
   try {
     data = JSON.parse(e.postData.contents);

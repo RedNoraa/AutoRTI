@@ -147,6 +147,7 @@
       }
     }
   </style>
+  <script src="config.js"></script>
 </head>
 <body class="d-flex flex-column h-100">
   <!-- Splash Page Overlay -->
@@ -434,7 +435,7 @@
     /***********************************
      * Global Variables & Google Sheets URL
      ***********************************/
-    const GOOGLE_SHEETS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbweOLW-hytrrV7QO4d1blVf_vxvuoIKZc2zKvqDKXzMT4r14Kk7-UxcHGOsMRUvlyTgyQ/exec';
+    const GOOGLE_SHEETS_WEB_APP_URL = window.AutoRTI_CONFIG.WEB_APP_URL;
     document.getElementById('webAppId').textContent += GOOGLE_SHEETS_WEB_APP_URL;
     
     // Gameplay Data Structures – always start with an empty nameList
