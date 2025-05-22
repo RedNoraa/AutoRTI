@@ -36,13 +36,25 @@ function doPost(e) {
       sheet.appendRow(headers);
       sheet.getRange(1,1,1,headers.length).setBackground("#DDEEFF").setFontWeight("bold");
     }
+    // Expand header row for any new keys not yet present
+    var existingHeader = sheet.getRange(1,1,1,sheet.getLastColumn()).getValues()[0];
+    var newKeys = [];
+    for (var key in data) {
+      if (key === "sheetName" || key === "username") continue;
+      if (existingHeader.indexOf(key) === -1) newKeys.push(key);
+    }
+    if (newKeys.length > 0) {
+      sheet.getRange(1, existingHeader.length + 1, 1, newKeys.length).setValues([newKeys]);
+      sheet.getRange(1,1,1,existingHeader.length + newKeys.length).setBackground("#DDEEFF").setFontWeight("bold");
+      existingHeader = existingHeader.concat(newKeys);
+    }
   } catch (e) {
     return ContentService.createTextOutput(JSON.stringify({result:"sheet error"}))
       .setMimeType(ContentService.MimeType.JSON);
   }
 
   // Build the row: Username, Timestamp, [all fields in header order]
-  var header = sheet.getDataRange().getValues()[0];
+  var header = sheet.getRange(1,1,1,sheet.getLastColumn()).getValues()[0];
   var row = [username, now];
   for (var i = 2; i < header.length; i++) {
     row.push(data[header[i]] || "");
