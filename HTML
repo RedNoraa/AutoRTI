@@ -1246,9 +1246,13 @@
       document.getElementById("studentSelectDashboard").value = "all";
       document.getElementById("studentPauseChartContainer").style.display = "none";
       
-      let currentTime = new Date();
-      let available = Math.floor((currentTime - gameStartTime) / (60 * 1000) / currentVI);
-      if (available <= 0) available = 1;
+      let available = 0;
+      let currentTime = null;
+      if (gameStartTime) {
+        currentTime = new Date();
+        available = Math.floor((currentTime - gameStartTime) / (60 * 1000) / currentVI);
+        if (available <= 0) available = 1;
+      }
       let numStudents = nameList.length;
       let totalRegular = 0;
       let totalBonus = 0;
@@ -1268,14 +1272,16 @@
          }
       });
       let availableTotal = available * numStudents;
-      let percentEarnedClass = Math.round((totalRegular / availableTotal) * 100);
+      let percentEarnedClass =
+        availableTotal > 0 ? Math.round((totalRegular / availableTotal) * 100) : "N/A";
       const lastIncidentDisplay = latestTimestamp ? new Date(latestTimestamp).toLocaleTimeString() : "N/A";
       const summaryDiv = document.querySelector(".student-summary");
       const rosterDisplay = currentRosterName ? currentRosterName : "No Roster Selected";
       document.getElementById("rosterDisplay").textContent = rosterDisplay;
       // In class view, show aggregated percent of available non-bonus points.
+      const percentDisplay = typeof percentEarnedClass === "number" ? `${percentEarnedClass}%` : "N/A";
       summaryDiv.innerHTML = `<h4>${rosterDisplay} Summary</h4>
-         <p><strong>Percent of Available Non-Bonus Points Earned (Class):</strong> ${percentEarnedClass}%</p>
+         <p><strong>Percent of Available Non-Bonus Points Earned (Class):</strong> ${percentDisplay}</p>
          <p><strong>Total Bonus Points Earned (Class):</strong> ${totalBonus}</p>
          <p><strong>Total Pause Events:</strong> ${totalPauseEvents}</p>
          <p><strong>Last Incident:</strong> ${lastIncidentDisplay}</p>`;
