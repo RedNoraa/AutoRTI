@@ -1,0 +1,17 @@
+{
+  "name": "autorti",
+  "version": "1.0.0",
+  "description": "repository for Auto RTI materials",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "jest": "^29.0.0",
+    "jsdom": "^22.0.0"
+  }
+}
