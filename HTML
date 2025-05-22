@@ -1,0 +1,1431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Behavior Game - Unified</title>
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" />
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Canvas-Confetti for celebration effect -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+  <style>
+    /* Splash Page Styles */
+    #splashPage {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: url("https://i.postimg.cc/PxpZCT2T/file-Bq1-YNPR5v-DLRb-RPyr-F3dw-A-2.jpg") no-repeat center center;
+      background-size: cover;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      opacity: 1;
+      transition: opacity 1.5s ease-out;
+    }
+    #splashPage h1 {
+      font-weight: bold;
+      color: white;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.7);
+      margin-bottom: 40px;
+      font-size: 4rem;
+      position: absolute;
+      top: 20px;
+    }
+    /* Explicit styling for the Start button */
+    #startButton {
+      pointer-events: auto !important;
+      touch-action: manipulation !important;
+      cursor: pointer;
+    }
+    /* Common styles for both pages */
+    body {
+      background-color: #f4f4f4;
+    }
+    .navbar-brand {
+      font-weight: bold;
+      font-size: 1.5rem;
+    }
+    .page-container {
+      margin-top: 20px;
+    }
+    /* Navigation drop-down for toggling pages */
+    .nav-select {
+      width: auto;
+    }
+    /* Gameplay-specific styles */
+    .playerGrid {
+      display: grid;
+      gap: 20px;
+      grid-template-columns: repeat(4, 1fr);
+      margin: 0 auto;
+    }
+    .playerItem {
+      padding: 15px;
+      border-radius: 5px;
+      background-color: #fff;
+      position: relative;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      transition: transform 0.2s;
+    }
+    .playerItem:hover {
+      transform: scale(1.02);
+    }
+    .paused {
+      border: 2px dashed red;
+    }
+    .indefinitePaused {
+      border: 2px dashed blue;
+    }
+    .timerBar {
+      width: 100%;
+      height: 10px;
+      background-color: #e0e0e0;
+      border-radius: 5px;
+      overflow: hidden;
+      margin-top: 10px;
+      display: none;
+    }
+    .timerFill {
+      height: 100%;
+      background-color: #76c7c0;
+      transition: width 0.1s;
+    }
+    .avatar {
+      display: block;
+      margin: 10px auto;
+      border-radius: 50%;
+      width: 150px;
+      height: 150px;
+      object-fit: cover;
+    }
+    /* Dashboard-specific styles */
+    .dashboard-container {
+      padding: 20px;
+    }
+    .chart-container {
+      width: 100%;
+      max-width: 700px;
+      margin: auto;
+    }
+    .table-container {
+      margin-top: 20px;
+    }
+    .student-summary {
+      background-color: #fff;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    /* Hide the Class Scoreboard */
+    .scoreboard-container {
+      display: none;
+    }
+    /* Hide the Google Sheets URL */
+    .webAppId {
+      color: transparent;
+    }
+    /* Print-friendly CSS */
+    @media print {
+      nav, .nav-select, .utility-buttons, .btn, .modal, select, input[type="date"], input[type="number"] {
+        display: none !important;
+      }
+      body {
+        background-color: white !important;
+      }
+      .page-container {
+        margin: 0;
+        padding: 0;
+      }
+      canvas {
+        max-width: 100% !important;
+      }
+    }
+  </style>
+</head>
+<body class="d-flex flex-column h-100">
+  <!-- Splash Page Overlay -->
+  <div id="splashPage" role="banner">
+    <h1>Great Behavior!</h1>
+    <button id="startButton" class="btn btn-primary btn-lg" role="button">Start</button>
+  </div>
+
+  <!-- Navigation Bar -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="#">Behavior Game</a>
+      <div class="d-flex ms-auto">
+        <!-- Dropdown to toggle between Gameplay and Dashboard -->
+        <select id="pageSelect" class="form-select form-select-sm nav-select">
+          <option value="gameplay" selected>Gameplay</option>
+          <option value="dashboard">Dashboard</option>
+        </select>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Page Container -->
+  <div class="container page-container">
+    <!-- Gameplay Section (visible by default) -->
+    <div id="gameplaySection">
+      <!-- Grid Scale Slider -->
+      <div class="row mb-4" id="gridScaleRow">
+        <div class="col">
+          <label for="gridScaleSlider" class="form-label">Adjust Avatar Grid Scale:</label>
+          <input type="range" class="form-range" min="1" max="10" id="gridScaleSlider" value="4" />
+          <span id="gridScaleValue">4</span> columns
+        </div>
+      </div>
+      <!-- Roster Section (moved above the controls) -->
+      <div class="row roster-section mb-4">
+        <div class="col-12">
+          <div class="card p-3">
+            <div class="d-flex flex-wrap gap-2 align-items-center">
+              <button class="btn btn-success btn-lg" data-bs-toggle="modal" data-bs-target="#addNameModal">Add Name</button>
+              <div>
+                <label for="rosterSelect" class="form-label me-2 mb-0">Select Roster:</label>
+                <select id="rosterSelect" class="form-select form-select-lg d-inline-block w-auto">
+                  <option value="default">Select Roster</option>
+                </select>
+              </div>
+              <button class="btn btn-info btn-lg" data-bs-toggle="modal" data-bs-target="#saveRosterModal">Save Roster</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Controls Section (VI schedule, pause duration, game duration) -->
+      <div class="row controls-section">
+        <div class="col-12 mb-3">
+          <div class="card p-3">
+            <div class="row g-2 align-items-center">
+              <div class="col-auto">
+                <label for="viSelect" class="form-label mb-0">Select VI Schedule:</label>
+              </div>
+              <div class="col-auto">
+                <select id="viSelect" class="form-select form-select-lg">
+                  <option value="1">VI1 (1 min)</option>
+                  <option value="3">VI3 (3 min)</option>
+                  <option value="5">VI5 (5 min)</option>
+                </select>
+              </div>
+              <div class="col-auto">
+                <label for="durationSelect" class="form-label mb-0">Pause Duration:</label>
+              </div>
+              <div class="col-auto">
+                <select id="durationSelect" class="form-select form-select-lg">
+                  <option value="10">10 Seconds</option>
+                  <option value="20">20 Seconds</option>
+                  <option value="30">30 Seconds</option>
+                  <option value="60">60 Seconds</option>
+                </select>
+              </div>
+              <div class="col-auto">
+                <label for="gameDuration" class="form-label mb-0">Game Duration (min):</label>
+              </div>
+              <div class="col-auto">
+                <input type="number" id="gameDuration" class="form-control form-control-lg" placeholder="0 for indefinite" min="0" />
+              </div>
+              <div class="col-auto">
+                <button id="startAllButton" class="btn btn-primary btn-lg">Start Game for All</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- List of All Players (hidden once the game starts) -->
+      <div class="row playerList-section">
+        <div class="col-12">
+          <div class="card p-3 mb-3">
+            <h2 class="h4">List of All Players:</h2>
+            <ul id="playerList" class="list-group"></ul>
+          </div>
+        </div>
+      </div>
+      <!-- Players Grid and Leaderboard -->
+      <div class="row">
+        <div class="col-md-8">
+          <div class="card p-3 mb-3">
+            <h2 class="h4">Players:</h2>
+            <div id="timerList" class="playerGrid"></div>
+          </div>
+          <!-- Leaderboard (Points Chart) -->
+          <div class="card p-3">
+            <h2 class="h4">Leaderboard</h2>
+            <canvas id="leaderboardChart" width="400" height="200"></canvas>
+          </div>
+        </div>
+      </div>
+      <div class="webAppId" id="webAppId">Google Sheets Web App URL: </div>
+    </div>
+    <!-- End Gameplay Section -->
+
+    <!-- Dashboard Section (hidden by default) -->
+    <div id="dashboardSection" style="display: none;">
+      <div class="dashboard-container">
+        <h1 class="text-center mb-4">Behavior Game Dashboard</h1>
+        <!-- Student Selector Drop-down -->
+        <div class="mb-4 text-center">
+          <label for="studentSelectDashboard" class="form-label"><strong>Select Student:</strong></label>
+          <select id="studentSelectDashboard" class="form-select d-inline-block w-auto">
+            <option value="all">All Students</option>
+          </select>
+        </div>
+        <!-- Dashboard Summary -->
+        <div class="student-summary mb-4" id="dashboardSummary">
+          <!-- Aggregated summary for all students will be set here -->
+          <h4>Class Room Summary</h4>
+          <p><strong>Roster:</strong> <span id="rosterDisplay">No Roster Selected</span></p>
+          <p><strong>Percent of Available Non-Bonus Points Earned (Class):</strong> N/A</p>
+          <p><strong>Total Bonus Points Earned (Class):</strong> N/A</p>
+          <p><strong>Total Pause Events:</strong> 0</p>
+          <p><strong>Last Incident:</strong> N/A</p>
+        </div>
+        <!-- Date Range Selector -->
+        <div class="mb-4">
+          <label for="dateRange" class="form-label"><strong>Select Date Range:</strong></label>
+          <input type="date" id="startDate" class="form-control d-inline-block w-auto" />
+          <span class="mx-2">to</span>
+          <input type="date" id="endDate" class="form-control d-inline-block w-auto" />
+          <button class="btn btn-primary ms-2" onclick="updateDashboardForAll()">Filter</button>
+        </div>
+        <!-- Horizontal Bar Chart (Same as gameplay leaderboard) -->
+        <div class="row mt-4">
+          <div class="col-md-12 chart-container">
+            <h4 class="text-center">Total Points by Student</h4>
+            <canvas id="horizontalBarChart"></canvas>
+          </div>
+        </div>
+        <!-- Other Dashboard Charts -->
+        <!-- Horizontal Bar Chart for Total Pause Events by Student -->
+        <div class="row mt-4">
+          <div class="col-md-12 chart-container">
+            <h4 class="text-center">Total Pause Events by Student</h4>
+            <canvas id="pauseEventsChart"></canvas>
+          </div>
+        </div>
+        <!-- Vertical Bar Chart for Classroom Pause Events across Behavior -->
+        <div class="row mt-4">
+          <div class="col-md-12 chart-container">
+            <h4 class="text-center">Classroom Pause Events across Behavior</h4>
+            <canvas id="classroomPauseChart"></canvas>
+          </div>
+        </div>
+        <!-- For individual student view: Vertical Bar Chart for Pause Events by Behavior -->
+        <div class="row mt-4" id="studentPauseChartContainer" style="display: none;">
+          <div class="col-md-12 chart-container">
+            <h4 class="text-center">Pause Events by Behavior</h4>
+            <canvas id="studentPauseChart"></canvas>
+          </div>
+        </div>
+        <!-- Bubble Plot: Pause Duration Heatmap -->
+        <div class="row mt-4">
+          <div class="col-md-12 chart-container">
+            <h4 class="text-center">Pause Duration Heatmap</h4>
+            <canvas id="pauseHeatmapChart"></canvas>
+          </div>
+        </div>
+        <!-- Time-of-Day Analysis Chart -->
+        <div class="row mt-4">
+          <div class="col-md-12 chart-container">
+            <h4 class="text-center">Time-of-Day Analysis</h4>
+            <canvas id="timeOfDayChart"></canvas>
+          </div>
+        </div>
+        <!-- Time-Out Events Chart -->
+        <div class="row mt-4">
+          <div class="col-md-12 chart-container">
+            <h4 class="text-center">Time-Out Events Over School Days</h4>
+            <canvas id="timeOutLineChart"></canvas>
+          </div>
+        </div>
+        <!-- Class Scoreboard Table (hidden) -->
+        <div class="table-container scoreboard-container">
+          <h4>Class Scoreboard</h4>
+          <table class="table table-striped">
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Student</th>
+                <th>Total Points</th>
+              </tr>
+            </thead>
+            <tbody id="scoreboardTable">
+              <!-- Table rows will be generated dynamically -->
+            </tbody>
+          </table>
+        </div>
+        <!-- Print Report Button -->
+        <div class="text-center mt-4">
+          <button class="btn btn-success" onclick="window.print()">Print Report</button>
+        </div>
+      </div>
+    </div>
+    <!-- End Dashboard Section -->
+  </div>
+
+  <!-- Modals for Gameplay Section -->
+  <!-- Add Name Modal -->
+  <div class="modal fade" id="addNameModal" tabindex="-1" aria-labelledby="addNameModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header text-bg-primary">
+          <h5 class="modal-title" id="addNameModalLabel">Add Player Name</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <label for="nameInput" class="form-label">Player Name:</label>
+          <input type="text" id="nameInput" class="form-control form-control-lg" placeholder="Enter player's name" />
+          <label for="avatarSelect" class="form-label mt-3">Select Avatar (GIF):</label>
+          <select id="avatarSelect" class="form-select form-select-lg">
+            <option value="">No Avatar</option>
+            <option value="https://i.gifer.com/Z6W2.gif">GIF 1 (Z6W2)</option>
+            <option value="https://i.gifer.com/1V8t.gif">GIF 2 (1V8t)</option>
+            <option value="https://i.gifer.com/5175.gif">GIF 3 (5175)</option>
+            <option value="https://i.gifer.com/Z23Z.gif">GIF 4 (Z23Z)</option>
+            <option value="https://i.gifer.com/3Rru.gif">GIF 5 (3Rru)</option>
+            <option value="https://i.gifer.com/4Jnt.gif">GIF 6 (4Jnt)</option>
+            <option value="https://i.gifer.com/HOOO.gif">GIF 7 (HOOO)</option>
+            <option value="https://i.gifer.com/Z3us.gif">GIF 8 (Z3us)</option>
+            <option value="https://i.gifer.com/y6.gif">GIF 9 (y6)</option>
+            <option value="https://i.gifer.com/WS2d.gif">GIF 10 (WS2d)</option>
+            <option value="https://i.gifer.com/ZVL6.gif">GIF 11 (ZVL6)</option>
+          </select>
+        </div>
+        <div class="modal-footer">
+          <button type="button" id="addNameButton" class="btn btn-primary btn-lg">Add Name</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Save Roster Modal -->
+  <div class="modal fade" id="saveRosterModal" tabindex="-1" aria-labelledby="saveRosterModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header text-bg-info">
+          <h5 class="modal-title" id="saveRosterModalLabel">Save Current Roster</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <label for="rosterNameInput" class="form-label">Roster Name:</label>
+          <input type="text" id="rosterNameInput" class="form-control form-control-lg" placeholder="Enter Roster Name" />
+        </div>
+        <div class="modal-footer">
+          <button type="button" id="saveRosterButton" class="btn btn-info btn-lg">Save Roster</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Audio Elements -->
+  <audio id="pointSound" src="https://drive.google.com/uc?export=view&id=1hcBqkO1gYRcWvu1UjE2nhx-u6tc0-jrn"></audio>
+  <audio id="bonusSound" src="https://cdn.freesound.org/previews/201/201159_3659362-lq.mp3"></audio>
+  <audio id="backgroundMusic" src="YOUR_MP3_SOURCE_URL" loop></audio>
+  <!-- Replace YOUR_MP3_SOURCE_URL with the actual URL of your background music -->
+
+  <!-- Bootstrap JS Bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+    /***********************************
+     * Global Variables & Google Sheets URL
+     ***********************************/
+    const GOOGLE_SHEETS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbweOLW-hytrrV7QO4d1blVf_vxvuoIKZc2zKvqDKXzMT4r14Kk7-UxcHGOsMRUvlyTgyQ/exec';
+    document.getElementById('webAppId').textContent += GOOGLE_SHEETS_WEB_APP_URL;
+    
+    // Gameplay Data Structures – always start with an empty nameList
+    const nameList = [];
+    const timerData = [];
+    let rosters = {};
+    let leaderboardChart = null; // Gameplay leaderboard chart (horizontal bar)
+    let horizontalBarChart = null; // Dashboard points chart
+    let pauseEventsChart = null;  // Chart for pause events (all students)
+    let studentPauseChart = null; // Chart for individual student's pause events by behavior
+    let classroomPauseChart = null; // Chart for classroom pause events across behavior
+    let pauseHeatmapChart = null;   // Bubble plot for pause duration heatmap
+    // Global variable for tracking the currently loaded roster name
+    let currentRosterName = "";
+    // Global variable for game start time (set when the game starts)
+    let gameStartTime = null;
+    // Global variable for the current VI schedule (in minutes)
+    let currentVI = 1;
+    
+    // Long press threshold (in milliseconds)
+    const longPressThreshold = 1000;
+    
+    // Color mapping for pause types.
+    const pauseTypeColors = {
+      "off-task": "rgba(255, 159, 64, 0.6)",
+      "noncompliance": "rgba(220, 53, 69, 0.6)",
+      "disruption": "rgba(108, 117, 125, 0.6)",
+      "property-destruction": "rgba(255, 193, 7, 0.6)",
+      "aggression": "rgba(40, 167, 69, 0.6)",
+      "indefinite": "rgba(0, 123, 255, 0.6)"
+    };
+    
+    /***********************************
+     * Debounce Function for Slider
+     ***********************************/
+    function debounce(func, delay) {
+      let timeout;
+      return function(...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => {
+          func.apply(this, args);
+        }, delay);
+      };
+    }
+    
+    /***********************************
+     * Audio & Background Music
+     ***********************************/
+    const bonusSound = document.getElementById("bonusSound");
+    bonusSound.addEventListener("canplaythrough", () => { console.log("Bonus sound is ready to play"); });
+    const backgroundMusic = document.getElementById("backgroundMusic");
+    
+    /***********************************
+     * Utility Functions
+     ***********************************/
+    function displaySuccessMessage(message) {
+      const messageElement = document.createElement('div');
+      messageElement.className = 'success-message';
+      messageElement.textContent = message;
+      document.body.appendChild(messageElement);
+      setTimeout(() => { document.body.removeChild(messageElement); }, 3000);
+    }
+    function displayErrorMessage(message) {
+      const messageElement = document.createElement('div');
+      messageElement.className = 'error-message';
+      messageElement.textContent = message;
+      document.body.appendChild(messageElement);
+      setTimeout(() => { document.body.removeChild(messageElement); }, 3000);
+    }
+    function logEvent(message) {
+      const eventLog = document.getElementById('eventLog');
+      if (eventLog) {
+        const p = document.createElement('p');
+        p.textContent = `${new Date().toLocaleTimeString()}: ${message}`;
+        eventLog.prepend(p);
+      }
+    }
+    async function sendToGoogleSheets(data) {
+      try {
+        console.log('Sending data to Google Sheets:', data);
+        const response = await fetch(GOOGLE_SHEETS_WEB_APP_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        if (!response.ok) { throw new Error('Failed to send data to Google Sheets'); }
+        console.log('Data sent to Google Sheets:', data);
+        displaySuccessMessage('Data successfully sent to Google Sheets');
+        logEvent(`Sent to Sheets: ${JSON.stringify(data)}`);
+      } catch (error) {
+        console.error('Error sending data to Google Sheets:', error);
+        displayErrorMessage('Failed to send data to Google Sheets');
+        logEvent(`Failed to send to Sheets: ${error}`);
+      }
+    }
+    
+    /***********************************
+     * Local Storage Handling
+     ***********************************/
+    function loadFromLocalStorage() {
+      nameList.length = 0;
+      const savedRosters = localStorage.getItem('rosters');
+      if (savedRosters) {
+        rosters = JSON.parse(savedRosters);
+        for (const rosterName in rosters) {
+          if (Array.isArray(rosters[rosterName]) && rosters[rosterName].length > 0) {
+            if (typeof rosters[rosterName][0] === 'string') {
+              rosters[rosterName] = rosters[rosterName].map(str => ({ name: str, avatar: '' }));
+            }
+          }
+        }
+      } else {
+        // Initialize default roster if none exist
+        rosters["Mr Aaron's classroom"] = [
+          { name: "Anne", avatar: "https://i.gifer.com/Z6W2.gif" },
+          { name: "Christi", avatar: "https://i.gifer.com/1V8t.gif" },
+          { name: "Becky", avatar: "https://i.gifer.com/5175.gif" },
+          { name: "Meredith", avatar: "https://i.gifer.com/Z23Z.gif" },
+          { name: "Aaron", avatar: "https://i.gifer.com/3Rru.gif" },
+          { name: "Baker", avatar: "https://i.gifer.com/4Jnt.gif" },
+          { name: "Thomas", avatar: "https://i.gifer.com/HOOO.gif" },
+          { name: "Hailey", avatar: "https://i.gifer.com/Z3us.gif" },
+          { name: "Maddi", avatar: "https://i.gifer.com/y6.gif" }
+        ];
+        saveToLocalStorage();
+      }
+    }
+    function saveToLocalStorage() {
+      localStorage.setItem('nameList', JSON.stringify(nameList));
+      localStorage.setItem('rosters', JSON.stringify(rosters));
+    }
+    
+    /***********************************
+     * Confetti Celebration
+     ***********************************/
+    function launchConfetti() {
+      const duration = 2000;
+      const end = Date.now() + duration;
+      (function frame() {
+        confetti({ particleCount: 6, angle: 60, spread: 55, origin: { x: 0 } });
+        confetti({ particleCount: 6, angle: 120, spread: 55, origin: { x: 1 } });
+        if (Date.now() < end) { requestAnimationFrame(frame); }
+      })();
+    }
+    
+    /***********************************
+     * Helper: Points Chart Config
+     ***********************************/
+    function getPointsChartConfig(labels, data, maxPoints) {
+      return {
+        type: "bar",
+        data: {
+          labels: labels,
+          datasets: [{
+            label: "Total Points",
+            data: data,
+            backgroundColor: "rgba(75, 192, 192, 0.6)"
+          }]
+        },
+        options: {
+          indexAxis: "y",
+          scales: {
+            x: { beginAtZero: true, ticks: { stepSize: 1 }, max: maxPoints },
+            y: { ticks: { autoSkip: false } }
+          },
+          responsive: true
+        }
+      };
+    }
+    
+    /***********************************
+     * Gameplay Functions
+     ***********************************/
+    function addNameToList(playerObj) {
+      nameList.push(playerObj);
+      updateNameList();
+      updateRosterOptions();
+      saveToLocalStorage();
+      console.log('Player added:', playerObj);
+      logEvent(`Added player: ${playerObj.name}`);
+    }
+    function updateNameList() {
+      const nameListElement = document.getElementById("playerList");
+      nameListElement.innerHTML = "";
+      nameList.forEach((player) => {
+        const listItem = document.createElement("li");
+        listItem.className = "list-group-item";
+        listItem.textContent = player.name;
+        nameListElement.appendChild(listItem);
+      });
+      console.log('Updated name list:', nameList);
+    }
+    function updateRosterOptions() {
+      const rosterSelect = document.getElementById("rosterSelect");
+      rosterSelect.innerHTML = '<option value="default">Select Roster</option>';
+      Object.keys(rosters).forEach((rosterName) => {
+        const option = document.createElement("option");
+        option.value = rosterName;
+        option.textContent = rosterName;
+        rosterSelect.appendChild(option);
+      });
+      console.log('Updated roster options:', rosters);
+    }
+    let gameTimer = null;
+    function endGame() {
+      timerData.forEach(td => { if (td.intervalId) clearInterval(td.intervalId); });
+      logEvent("Game Over!");
+      launchConfetti();
+    }
+    function startGameForAll() {
+      const selectedVI = parseInt(document.getElementById("viSelect").value) || 1;
+      const gameDurationValue = parseInt(document.getElementById("gameDuration").value) || 10;
+      gameStartTime = new Date();
+      currentVI = selectedVI;
+      const viInterval = selectedVI * 60;
+      const userGameDuration = gameDurationValue;
+      document.getElementById("timerList").innerHTML = "";
+      nameList.forEach((player, index) => { startGame(index, player, viInterval); });
+      if (!currentRosterName && nameList.length > 0) {
+        currentRosterName = "Custom Roster";
+      }
+      updateLeaderboard();
+      updatePauseEventsChart();
+      updateClassroomPauseChart();
+      updatePauseHeatmap();
+      if (userGameDuration > 0) {
+        if (gameTimer) clearTimeout(gameTimer);
+        gameTimer = setTimeout(() => { endGame(); }, userGameDuration * 60 * 1000);
+      }
+      backgroundMusic.play();
+      logEvent('Started game for all players');
+      const controlsSection = document.querySelector(".controls-section");
+      const rosterSection = document.querySelector(".roster-section");
+      const playerListSection = document.querySelector(".playerList-section");
+      if (controlsSection) { controlsSection.style.display = "none"; }
+      if (rosterSection) { rosterSection.style.display = "none"; }
+      if (playerListSection) { playerListSection.style.display = "none"; }
+      updatePlayerGridColumns();
+    }
+    function startGame(index, player, viInterval) {
+      console.log('Starting game for player:', player, 'with VI interval:', viInterval);
+      const randomOffset = Math.floor(Math.random() * viInterval);
+      const pauseButton = document.createElement("button");
+      pauseButton.textContent = "Pause";
+      pauseButton.className = "btn btn-warning btn-sm me-2 btn-lg";
+      let pressTimer;
+      pauseButton.addEventListener("mousedown", function(e) {
+         e.preventDefault();
+         this.pressStart = new Date().getTime();
+         pressTimer = setTimeout(() => {
+             toggleLongPause(index);
+             timerData[index].hasLongPressOccurred = true;
+         }, longPressThreshold);
+      });
+      pauseButton.addEventListener("mouseup", function(e) {
+         e.preventDefault();
+         clearTimeout(pressTimer);
+         let pressDuration = new Date().getTime() - this.pressStart;
+         if (!timerData[index].hasLongPressOccurred && pressDuration < longPressThreshold) {
+             togglePause(index);
+         }
+         timerData[index].hasLongPressOccurred = false;
+      });
+      pauseButton.addEventListener("mouseleave", function(e) {
+         clearTimeout(pressTimer);
+      });
+      pauseButton.addEventListener("touchstart", function(e) {
+         e.preventDefault();
+         this.pressStart = new Date().getTime();
+         pressTimer = setTimeout(() => {
+             toggleLongPause(index);
+             timerData[index].hasLongPressOccurred = true;
+         }, longPressThreshold);
+      });
+      pauseButton.addEventListener("touchend", function(e) {
+         e.preventDefault();
+         clearTimeout(pressTimer);
+         let pressDuration = new Date().getTime() - this.pressStart;
+         if (!timerData[index].hasLongPressOccurred && pressDuration < longPressThreshold) {
+             togglePause(index);
+         }
+         timerData[index].hasLongPressOccurred = false;
+      });
+      pauseButton.addEventListener("touchcancel", function(e) {
+         clearTimeout(pressTimer);
+      });
+      
+      const bonusPointButton = document.createElement("button");
+      bonusPointButton.textContent = "Bonus Point";
+      bonusPointButton.className = "btn btn-success btn-sm btn-lg";
+      bonusPointButton.addEventListener("click", () => { addBonusPoint(index); });
+      const reasonSelect = document.createElement("select");
+      reasonSelect.className = "form-select form-select-sm mt-2";
+      reasonSelect.style.display = "none";
+      reasonSelect.innerHTML = `
+        <option value="">Select Reason</option>
+        <option value="off-task">Off-task</option>
+        <option value="noncompliance">Noncompliance</option>
+        <option value="disruption">Disruption</option>
+        <option value="property-destruction">Property Destruction</option>
+        <option value="aggression">Aggression</option>
+      `;
+      reasonSelect.addEventListener("change", () => { timerData[index].pauseReason = reasonSelect.value || "off-task"; });
+      reasonSelect.title = "Reason for Pause";
+      const timerBar = document.createElement("div");
+      timerBar.className = "timerBar";
+      timerBar.innerHTML = `<div id="timerFill_${index}" class="timerFill"></div>`;
+      const pointsSpan = document.createElement("span");
+      pointsSpan.id = `points_${index}`;
+      pointsSpan.className = "fw-bold";
+      pointsSpan.textContent = 0;
+      const nameHeading = document.createElement("h5");
+      nameHeading.className = "text-center mb-3";
+      nameHeading.textContent = `${player.name}: `;
+      let avatarImage = null;
+      if (player.avatar) {
+        avatarImage = document.createElement("img");
+        avatarImage.className = "avatar";
+        avatarImage.src = player.avatar;
+        avatarImage.alt = "Avatar for " + player.name;
+        avatarImage.onerror = () => { console.error(`Failed to load avatar for player ${player.name}. Omitting image.`); avatarImage.remove(); };
+      }
+      const btnGroup = document.createElement("div");
+      btnGroup.className = "d-flex justify-content-center mb-2";
+      btnGroup.appendChild(pauseButton);
+      btnGroup.appendChild(bonusPointButton);
+      const listItem = document.createElement("div");
+      listItem.className = "playerItem";
+      listItem.appendChild(nameHeading);
+      if (avatarImage) listItem.appendChild(avatarImage);
+      listItem.appendChild(document.createTextNode("Points: "));
+      listItem.appendChild(pointsSpan);
+      listItem.appendChild(document.createElement("br"));
+      listItem.appendChild(btnGroup);
+      listItem.appendChild(reasonSelect);
+      listItem.appendChild(timerBar);
+      timerData[index] = {
+        points: 0,
+        regularPoints: 0,
+        isPaused: false,
+        isIndefinitePause: false,
+        pausedDuration: 0,
+        selectedDuration: parseInt(document.getElementById("durationSelect").value),
+        viInterval: viInterval,
+        startTime: new Date(Date.now() - randomOffset * 1000),
+        pauseStartTime: null,
+        indefinitePauseStart: null,
+        timestamps: [],
+        pauseReason: "",
+        bonusButtonRef: bonusPointButton,
+        cardElement: listItem,
+        hasLongPressOccurred: false
+      };
+      document.getElementById("timerList").appendChild(listItem);
+      const intervalId = setInterval(() => { updatePointsAndTimer(index); }, 1000);
+      timerData[index].intervalId = intervalId;
+      console.log('Timer data for player index:', index, timerData[index]);
+    }
+    function updatePointsAndTimer(index) {
+      const currentTime = new Date();
+      if (timerData[index].isIndefinitePause) {
+        const fillDiv = document.getElementById(`timerFill_${index}`);
+        if (fillDiv) fillDiv.style.width = "100%";
+        return;
+      }
+      if (timerData[index].isPaused) {
+        const elapsedPause = (currentTime - timerData[index].pauseStartTime) / 1000;
+        const remainingPauseTime = timerData[index].selectedDuration - elapsedPause;
+        if (remainingPauseTime <= 0) {
+          togglePause(index, true);
+        } else {
+          const fillPercentage = (remainingPauseTime / timerData[index].selectedDuration) * 100;
+          const fillDiv = document.getElementById(`timerFill_${index}`);
+          if (fillDiv) fillDiv.style.width = `${fillPercentage}%`;
+        }
+        return;
+      }
+      const elapsedTime = (currentTime - timerData[index].startTime) / 1000;
+      if (elapsedTime >= timerData[index].viInterval) {
+        timerData[index].points += 1;
+        timerData[index].regularPoints = (timerData[index].regularPoints || 0) + 1;
+        document.getElementById(`points_${index}`).textContent = timerData[index].points;
+        timerData[index].startTime = new Date(timerData[index].startTime.getTime() + timerData[index].viInterval * 1000);
+        sendToGoogleSheets({
+          name: nameList[index].name,
+          timestamp: new Date().toLocaleString(),
+          points: timerData[index].points,
+          isPaused: timerData[index].isPaused,
+          reason: timerData[index].pauseReason
+        });
+        logEvent(`Point awarded to ${nameList[index].name}, total: ${timerData[index].points}`);
+      }
+    }
+    function updatePauseTimers(index) {
+      const playerItem = document.querySelector(`#timerList .playerItem:nth-child(${index + 1})`);
+      if (!playerItem) return;
+      if (timerData[index].isPaused || timerData[index].isIndefinitePause) {
+        playerItem.querySelector('.timerBar').style.display = 'block';
+        playerItem.querySelector('select').style.display = 'block';
+      } else {
+        playerItem.querySelector('.timerBar').style.display = 'none';
+        playerItem.querySelector('select').style.display = 'none';
+      }
+    }
+    function togglePause(index, autoResumed = false) {
+      const wasPaused = timerData[index].isPaused;
+      timerData[index].isPaused = !wasPaused;
+      if (!wasPaused) {
+        timerData[index].pauseStartTime = new Date();
+        timerData[index].timestamps.push({ time: timerData[index].pauseStartTime, reason: "" });
+        timerData[index].bonusButtonRef.disabled = true;
+        timerData[index].cardElement.classList.add('paused');
+        logEvent(`${nameList[index].name} paused. Reason: (will record on resume)`);
+      } else {
+        const pauseStart = timerData[index].pauseStartTime;
+        const pauseEnd = new Date();
+        const totalPauseSeconds = Math.floor((pauseEnd - pauseStart) / 1000);
+        if (timerData[index].timestamps.length > 0) {
+          timerData[index].timestamps[timerData[index].timestamps.length - 1].duration = totalPauseSeconds;
+        }
+        const reasonSelect = document.querySelector(`#timerList .playerItem:nth-child(${index + 1}) select`);
+        const pauseReason = reasonSelect.value || "off-task";
+        if (timerData[index].timestamps.length > 0) {
+          timerData[index].timestamps[timerData[index].timestamps.length - 1].reason = pauseReason;
+        }
+        if (autoResumed) {
+          logEvent(`${nameList[index].name} auto-resumed after ${totalPauseSeconds} sec paused. Reason: ${pauseReason}`);
+        } else {
+          logEvent(`${nameList[index].name} resumed after ${totalPauseSeconds} sec paused. Reason: ${pauseReason}`);
+        }
+        sendToGoogleSheets({
+          name: nameList[index].name,
+          timestamp: new Date().toLocaleString(),
+          points: timerData[index].points,
+          isPaused: timerData[index].isPaused,
+          reason: timerData[index].pauseReason
+        });
+        displaySuccessMessage(`Pause reason: ${pauseReason} recorded successfully`);
+        let pauseDuration = pauseEnd - pauseStart;
+        timerData[index].startTime = new Date(timerData[index].startTime.getTime() + pauseDuration);
+        reasonSelect.value = "";
+        timerData[index].bonusButtonRef.disabled = false;
+        timerData[index].pauseStartTime = null;
+        timerData[index].cardElement.classList.remove('paused');
+      }
+      updatePauseTimers(index);
+      updateLeaderboard();
+    }
+    function toggleLongPause(index) {
+      if (!timerData[index].isIndefinitePause) {
+         timerData[index].isIndefinitePause = true;
+         timerData[index].indefinitePauseStart = new Date();
+         timerData[index].bonusButtonRef.disabled = true;
+         timerData[index].cardElement.classList.remove('paused');
+         timerData[index].cardElement.classList.add('indefinitePaused');
+         logEvent(`${nameList[index].name} entered indefinite pause.`);
+      } else {
+         const pauseEnd = new Date();
+         const indefiniteDuration = Math.floor((pauseEnd - timerData[index].indefinitePauseStart) / 1000);
+         logEvent(`${nameList[index].name} ended indefinite pause after ${indefiniteDuration} seconds.`);
+         timerData[index].timestamps.push({ time: timerData[index].indefinitePauseStart, reason: "indefinite", duration: indefiniteDuration });
+         timerData[index].startTime = new Date(timerData[index].startTime.getTime() + (pauseEnd - timerData[index].indefinitePauseStart));
+         timerData[index].isIndefinitePause = false;
+         timerData[index].indefinitePauseStart = null;
+         timerData[index].bonusButtonRef.disabled = false;
+         timerData[index].cardElement.classList.remove('indefinitePaused');
+      }
+      updateLeaderboard();
+    }
+    function addBonusPoint(index) {
+      if (timerData[index].isPaused || timerData[index].isIndefinitePause) {
+        logEvent(`Bonus point attempt ignored for ${nameList[index].name} because they are paused.`);
+        return;
+      }
+      timerData[index].points += 1;
+      document.getElementById(`points_${index}`).textContent = timerData[index].points;
+      if (bonusSound.readyState >= 2) { bonusSound.currentTime = 0; bonusSound.play(); }
+      sendToGoogleSheets({
+        name: nameList[index].name,
+        timestamp: new Date().toLocaleString(),
+        points: timerData[index].points,
+        isPaused: timerData[index].isPaused,
+        reason: timerData[index].pauseReason
+      });
+      logEvent(`Bonus point for ${nameList[index].name}. Total points: ${timerData[index].points}`);
+      updateLeaderboard();
+    }
+    // Gameplay leaderboard update (horizontal bar chart) – used in gameplay view.
+    function updateLeaderboard() {
+      const leaderboardData = nameList.map((player, index) => ({
+        name: player.name,
+        points: (timerData[index] && timerData[index].points) || 0
+      }));
+      const labels = leaderboardData.map(d => d.name);
+      const data = leaderboardData.map(d => d.points);
+      const maxPoints = Math.max(...data, 0) + 1;
+      if (!leaderboardChart) {
+        const ctx = document.getElementById("leaderboardChart").getContext("2d");
+        leaderboardChart = new Chart(ctx, getPointsChartConfig(labels, data, maxPoints));
+      } else {
+        leaderboardChart.data.labels = labels;
+        leaderboardChart.data.datasets[0].data = data;
+        leaderboardChart.options.scales.x.max = maxPoints;
+        leaderboardChart.update();
+      }
+      updateScoreboard();
+    }
+    function updateScoreboard() {
+      const players = nameList.map((player, index) => ({
+        name: player.name,
+        points: (timerData[index] && timerData[index].points) || 0
+      }));
+      players.sort((a, b) => b.points - a.points);
+      const tableBody = document.getElementById("scoreboardTable");
+      tableBody.innerHTML = "";
+      players.forEach((player, i) => {
+        const row = document.createElement("tr");
+        const rankCell = document.createElement("td");
+        rankCell.textContent = i + 1;
+        const nameCell = document.createElement("td");
+        nameCell.textContent = player.name;
+        const pointsCell = document.createElement("td");
+        pointsCell.textContent = player.points;
+        row.appendChild(rankCell);
+        row.appendChild(nameCell);
+        row.appendChild(pointsCell);
+        tableBody.appendChild(row);
+      });
+    }
+    // Dashboard horizontal bar chart update – this graph will be identical to the gameplay leaderboard.
+    function updateDashboardPointsChart() {
+      const leaderboardData = nameList.map((player, index) => ({
+        name: player.name,
+        points: (timerData[index] && timerData[index].points) || 0
+      }));
+      const labels = leaderboardData.map(d => d.name);
+      const data = leaderboardData.map(d => d.points);
+      const maxPoints = Math.max(...data, 0) + 1;
+      if (horizontalBarChart) {
+        horizontalBarChart.destroy();
+        horizontalBarChart = null;
+      }
+      const ctx = document.getElementById("horizontalBarChart").getContext("2d");
+      horizontalBarChart = new Chart(ctx, getPointsChartConfig(labels, data, maxPoints));
+    }
+    // Update pause events chart (horizontal bar) for all students.
+    function updatePauseEventsChart() {
+      const pauseData = nameList.map((player, index) => ({
+        name: player.name,
+        events: timerData[index] ? timerData[index].timestamps.length : 0
+      }));
+      pauseData.sort((a, b) => b.events - a.events);
+      const maxEvents = Math.max(...pauseData.map(item => item.events), 0) + 1;
+      if (!pauseEventsChart) {
+        const ctx = document.getElementById("pauseEventsChart").getContext("2d");
+        pauseEventsChart = new Chart(ctx, {
+          type: "bar",
+          data: {
+            labels: pauseData.map(item => item.name),
+            datasets: [{
+              label: "Total Pause Events",
+              data: pauseData.map(item => item.events),
+              backgroundColor: "rgba(255, 159, 64, 0.6)"
+            }]
+          },
+          options: {
+            indexAxis: "y",
+            scales: {
+              x: { beginAtZero: true, ticks: { stepSize: 1 }, max: maxEvents },
+              y: { ticks: { autoSkip: false } }
+            },
+            responsive: true
+          }
+        });
+      } else {
+        pauseEventsChart.data.labels = pauseData.map(item => item.name);
+        pauseEventsChart.data.datasets[0].data = pauseData.map(item => item.events);
+        pauseEventsChart.options.scales.x.max = maxEvents;
+        pauseEventsChart.options.scales.x.ticks.stepSize = 1;
+        pauseEventsChart.update();
+      }
+    }
+    // Update classroom pause events chart (vertical bar) for all students.
+    function updateClassroomPauseChart() {
+      let aggregated = {};
+      nameList.forEach((player, index) => {
+        if (timerData[index]) {
+          timerData[index].timestamps.forEach(event => {
+            let reason = event.reason || "off-task";
+            aggregated[reason] = (aggregated[reason] || 0) + 1;
+          });
+        }
+      });
+      const labels = Object.keys(aggregated);
+      const data = labels.map(label => aggregated[label]);
+      const maxValue = Math.max(...data, 0) + 1;
+      if (!classroomPauseChart) {
+        const ctx = document.getElementById("classroomPauseChart").getContext("2d");
+        classroomPauseChart = new Chart(ctx, {
+          type: "bar",
+          data: {
+            labels: labels,
+            datasets: [{
+              label: "Classroom Pause Events",
+              data: data,
+              backgroundColor: "rgba(255, 99, 132, 0.6)"
+            }]
+          },
+          options: {
+            scales: {
+              y: { beginAtZero: true, ticks: { stepSize: 1 }, max: maxValue }
+            },
+            responsive: true
+          }
+        });
+      } else {
+        classroomPauseChart.data.labels = labels;
+        classroomPauseChart.data.datasets[0].data = data;
+        classroomPauseChart.options.scales.y.max = maxValue;
+        classroomPauseChart.options.scales.y.ticks.stepSize = 1;
+        classroomPauseChart.update();
+      }
+    }
+    // Update individual student's pause events by behavior chart (vertical bar).
+    function updateStudentPauseChart(labels, data) {
+      const maxValue = Math.max(...data, 0) + 1;
+      if (!studentPauseChart) {
+        const ctx = document.getElementById("studentPauseChart").getContext("2d");
+        studentPauseChart = new Chart(ctx, {
+          type: "bar",
+          data: {
+            labels: labels,
+            datasets: [{
+              label: "Pause Events by Behavior",
+              data: data,
+              backgroundColor: "rgba(153, 102, 255, 0.6)"
+            }]
+          },
+          options: {
+            scales: {
+              y: { beginAtZero: true, ticks: { stepSize: 1 }, max: maxValue }
+            },
+            responsive: true
+          }
+        });
+      } else {
+        studentPauseChart.data.labels = labels;
+        studentPauseChart.data.datasets[0].data = data;
+        studentPauseChart.options.scales.y.max = maxValue;
+        studentPauseChart.options.scales.y.ticks.stepSize = 1;
+        studentPauseChart.update();
+      }
+    }
+    // Update pause heatmap bubble plot.
+    function updatePauseHeatmap() {
+      let dataPoints = [];
+      let colors = [];
+      let selected = document.getElementById("studentSelectDashboard").value;
+      if (selected === "all") {
+         nameList.forEach((player, index) => {
+           if (timerData[index]) {
+             timerData[index].timestamps.forEach(event => {
+                if (event.duration) {
+                  let eventTime = new Date(event.time);
+                  let hour = eventTime.getHours() + eventTime.getMinutes()/60;
+                  if (hour >= 7 && hour <= 15) {
+                    let day = eventTime.getDay();
+                    if (day >= 1 && day <= 5) {
+                      dataPoints.push({ x: day, y: hour, r: event.duration / 5 });
+                      let reason = event.reason || "off-task";
+                      colors.push(pauseTypeColors[reason] || "rgba(0,0,0,0.6)");
+                    }
+                  }
+                }
+             });
+           }
+         });
+      } else {
+         let index = parseInt(selected);
+         if (timerData[index]) {
+           timerData[index].timestamps.forEach(event => {
+                if (event.duration) {
+                  let eventTime = new Date(event.time);
+                  let hour = eventTime.getHours() + eventTime.getMinutes()/60;
+                  if (hour >= 7 && hour <= 15) {
+                    let day = eventTime.getDay();
+                    if (day >= 1 && day <= 5) {
+                      dataPoints.push({ x: day, y: hour, r: event.duration / 5 });
+                      let reason = event.reason || "off-task";
+                      colors.push(pauseTypeColors[reason] || "rgba(0,0,0,0.6)");
+                    }
+                  }
+                }
+           });
+         }
+      }
+      if (!pauseHeatmapChart) {
+        const ctx = document.getElementById("pauseHeatmapChart").getContext("2d");
+        pauseHeatmapChart = new Chart(ctx, {
+          type: "bubble",
+          data: {
+            datasets: [{
+              label: "Pause Events",
+              data: dataPoints,
+              backgroundColor: colors
+            }]
+          },
+          options: {
+            scales: {
+              x: {
+                type: "linear",
+                position: "bottom",
+                title: { display: true, text: "Day of Week" },
+                min: 1,
+                max: 5,
+                ticks: {
+                  stepSize: 1,
+                  callback: function(value) {
+                    const days = {1:"Mon",2:"Tue",3:"Wed",4:"Thu",5:"Fri"};
+                    return days[value] || value;
+                  }
+                }
+              },
+              y: {
+                type: "linear",
+                title: { display: true, text: "Time of Day" },
+                min: 7,
+                max: 15,
+                ticks: {
+                  stepSize: 1,
+                  callback: function(value) {
+                    return (value <= 12) ? value + " AM" : (value - 12) + " PM";
+                  }
+                }
+              }
+            },
+            plugins: {
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    let label = context.dataset.label || "";
+                    if (label) label += ": ";
+                    label += `Duration ${Math.round(context.raw.r * 5)} sec, `;
+                    const days = {1:"Mon",2:"Tue",3:"Wed",4:"Thu",5:"Fri"};
+                    label += `Day: ${days[context.raw.x] || context.raw.x}, `;
+                    label += `Time: ${(context.raw.y <= 12) ? context.raw.y + " AM" : (context.raw.y - 12) + " PM"}`;
+                    return label;
+                  }
+                }
+              }
+            },
+            responsive: true
+          }
+        });
+      } else {
+        pauseHeatmapChart.data.datasets[0].data = dataPoints;
+        pauseHeatmapChart.data.datasets[0].backgroundColor = colors;
+        pauseHeatmapChart.update();
+      }
+    }
+    
+    // Update avatar grid columns based on slider.
+    function updatePlayerGridColumns() {
+      const grid = document.getElementById("timerList");
+      const slider = document.getElementById("gridScaleSlider");
+      let cols = slider ? parseInt(slider.value) || 4 : 4;
+      grid.style.gridTemplateColumns = "repeat(" + cols + ", 1fr)";
+    }
+    
+    /***********************************
+     * Dashboard Functions
+     ***********************************/
+    function populateDashboardStudentSelect() {
+      const select = document.getElementById("studentSelectDashboard");
+      select.innerHTML = '<option value="all">All Students</option>';
+      nameList.forEach((player, index) => {
+        select.innerHTML += `<option value="${index}">${player.name}</option>`;
+      });
+    }
+    function updateDashboardForStudent(index) {
+      if (timerData[index]) {
+        let currentTime = new Date();
+        let available = Math.floor((currentTime - gameStartTime) / (60 * 1000) / currentVI);
+        if (available <= 0) available = 1;
+        const total = timerData[index].points || 0;
+        const reg = timerData[index].regularPoints || 0;
+        const bonus = total - reg;
+        const percentEarned = Math.round((reg / available) * 100);
+        const pauseEvents = timerData[index].timestamps.length;
+        const summaryDiv = document.querySelector(".student-summary");
+        summaryDiv.innerHTML = `<h4>Student Summary for ${nameList[index].name}</h4>
+          <p><strong>Total Points Earned:</strong> ${total}</p>
+          <p><strong>Bonus Points Earned:</strong> ${bonus}</p>
+          <p><strong>Percent of Available Non-Bonus Points Earned:</strong> ${percentEarned}%</p>
+          <p><strong>Pause Events:</strong> ${pauseEvents}</p>`;
+        let reasonCounts = {};
+        timerData[index].timestamps.forEach(event => {
+          let reason = event.reason || "off-task";
+          reasonCounts[reason] = (reasonCounts[reason] || 0) + 1;
+        });
+        const labels = Object.keys(reasonCounts);
+        const data = labels.map(label => reasonCounts[label]);
+        updateStudentPauseChart(labels, data);
+        updatePauseHeatmap();
+      }
+    }
+    function updateDashboardForAll() {
+      // Force dropdown to "all" and hide individual student chart container
+      document.getElementById("studentSelectDashboard").value = "all";
+      document.getElementById("studentPauseChartContainer").style.display = "none";
+      
+      let currentTime = new Date();
+      let available = Math.floor((currentTime - gameStartTime) / (60 * 1000) / currentVI);
+      if (available <= 0) available = 1;
+      let numStudents = nameList.length;
+      let totalRegular = 0;
+      let totalBonus = 0;
+      let totalPauseEvents = 0;
+      let latestTimestamp = 0;
+      timerData.forEach(td => {
+         totalRegular += (td.regularPoints || 0);
+         totalBonus += ((td.points || 0) - (td.regularPoints || 0));
+         totalPauseEvents += (td.timestamps ? td.timestamps.length : 0);
+         if (td.timestamps && td.timestamps.length > 0) {
+            td.timestamps.forEach(t => {
+              let tTime = (t.time instanceof Date) ? t.time.getTime() : new Date(t.time).getTime();
+              if (tTime > latestTimestamp) {
+                latestTimestamp = tTime;
+              }
+            });
+         }
+      });
+      let availableTotal = available * numStudents;
+      let percentEarnedClass = Math.round((totalRegular / availableTotal) * 100);
+      const lastIncidentDisplay = latestTimestamp ? new Date(latestTimestamp).toLocaleTimeString() : "N/A";
+      const summaryDiv = document.querySelector(".student-summary");
+      const rosterDisplay = currentRosterName ? currentRosterName : "No Roster Selected";
+      document.getElementById("rosterDisplay").textContent = rosterDisplay;
+      // In class view, show aggregated percent of available non-bonus points.
+      summaryDiv.innerHTML = `<h4>${rosterDisplay} Summary</h4>
+         <p><strong>Percent of Available Non-Bonus Points Earned (Class):</strong> ${percentEarnedClass}%</p>
+         <p><strong>Total Bonus Points Earned (Class):</strong> ${totalBonus}</p>
+         <p><strong>Total Pause Events:</strong> ${totalPauseEvents}</p>
+         <p><strong>Last Incident:</strong> ${lastIncidentDisplay}</p>`;
+      
+      // Update the dashboard points chart using the same configuration as gameplay leaderboard.
+      updateLeaderboard(); // This updates the gameplay leaderboard.
+      updateDashboardPointsChart(); // Recreate the dashboard's horizontal bar chart.
+      updatePauseEventsChart();
+      updateClassroomPauseChart();
+      updateScoreboard();
+      updatePauseHeatmap();
+    }
+    /***********************************
+     * Dashboard Points Chart (Horizontal Bar) Update
+     ***********************************/
+    function updateDashboardPointsChart() {
+      const leaderboardData = nameList.map((player, index) => ({
+        name: player.name,
+        points: (timerData[index] && timerData[index].points) || 0
+      }));
+      const labels = leaderboardData.map(d => d.name);
+      const data = leaderboardData.map(d => d.points);
+      const maxPoints = Math.max(...data, 0) + 1;
+      if (horizontalBarChart) {
+        horizontalBarChart.destroy();
+        horizontalBarChart = null;
+      }
+      const ctx = document.getElementById("horizontalBarChart").getContext("2d");
+      horizontalBarChart = new Chart(ctx, getPointsChartConfig(labels, data, maxPoints));
+    }
+    
+    /***********************************
+     * Dashboard Charts Initialization (sample data)
+     ***********************************/
+    const sampleTimeOfDayData = {
+      labels: ["8 AM", "9 AM", "10 AM", "11 AM", "12 PM", "1 PM", "2 PM"],
+      datasets: [{ label: "Incidents", data: [2, 5, 7, 9, 12, 14, 16], backgroundColor: "rgba(255, 99, 132, 0.6)" }]
+    };
+    const sampleTimeOutData = {
+      labels: ["Mon", "Tue", "Wed", "Thu", "Fri"],
+      datasets: [{ label: "Timeout Events", data: [4, 8, 11, 15, 19], borderColor: "rgba(75, 192, 192, 1)", borderWidth: 2, fill: false }]
+    };
+    const timeOfDayChart = new Chart(document.getElementById("timeOfDayChart"), {
+      type: "bar",
+      data: sampleTimeOfDayData,
+      options: { responsive: true, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+    });
+    const timeOutLineChart = new Chart(document.getElementById("timeOutLineChart"), {
+      type: "line",
+      data: sampleTimeOutData,
+      options: { responsive: true, scales: { y: { beginAtZero: true } } }
+    });
+    
+    /***********************************
+     * Event Listeners & Page Toggle
+     ***********************************/
+    document.getElementById("pageSelect").addEventListener("change", function() {
+      const selectedPage = this.value;
+      if (selectedPage === "gameplay") {
+        document.getElementById("gameplaySection").style.display = "block";
+        document.getElementById("dashboardSection").style.display = "none";
+      } else if (selectedPage === "dashboard") {
+        document.getElementById("gameplaySection").style.display = "none";
+        document.getElementById("dashboardSection").style.display = "block";
+        populateDashboardStudentSelect();
+        updateDashboardForAll();
+      }
+    });
+    
+    // Initialize default roster if needed and update lists.
+    loadFromLocalStorage();
+    updateNameList();
+    updateRosterOptions();
+    
+    // Grid scale slider event with debounce.
+    const gridScaleSlider = document.getElementById("gridScaleSlider");
+    gridScaleSlider.addEventListener("input", debounce(function() {
+      document.getElementById("gridScaleValue").textContent = this.value;
+      updatePlayerGridColumns();
+    }, 100));
+    
+    document.getElementById("addNameButton").addEventListener("click", () => {
+      const nameInput = document.getElementById("nameInput");
+      const avatarSelect = document.getElementById("avatarSelect");
+      const name = nameInput.value.trim();
+      const avatar = avatarSelect.value.trim();
+      if (name) {
+        const newPlayer = { name: name, avatar: avatar };
+        addNameToList(newPlayer);
+        nameInput.value = "";
+        avatarSelect.value = "";
+        displaySuccessMessage('Player added successfully');
+        logEvent(`Player added: ${name}`);
+      } else {
+        displayErrorMessage('Please enter a valid name');
+      }
+    });
+    
+    document.getElementById("startAllButton").addEventListener("click", () => { startGameForAll(); });
+    
+    document.getElementById("saveRosterButton").addEventListener("click", () => {
+      const rosterName = document.getElementById("rosterNameInput").value.trim();
+      if (rosterName && nameList.length > 0) {
+        rosters[rosterName] = [...nameList];
+        currentRosterName = rosterName;
+        updateRosterOptions();
+        sendToGoogleSheets({ rosterName, roster: rosters[rosterName] });
+        displaySuccessMessage('Roster saved successfully');
+        saveToLocalStorage();
+        logEvent(`Roster saved: ${rosterName}`);
+      } else {
+        displayErrorMessage('Please enter a valid roster name and add at least one name');
+      }
+    });
+    
+    document.getElementById("rosterSelect").addEventListener("change", () => {
+      const selectedRoster = document.getElementById("rosterSelect").value;
+      if (selectedRoster !== "default" && rosters[selectedRoster]) {
+        nameList.splice(0, nameList.length, ...rosters[selectedRoster]);
+        currentRosterName = selectedRoster;
+        updateNameList();
+        saveToLocalStorage();
+        logEvent(`Loaded roster: ${selectedRoster}`);
+      }
+    });
+    
+    document.getElementById("studentSelectDashboard").addEventListener("change", function() {
+      const val = this.value;
+      if (val === "all") {
+        updateDashboardForAll();
+      } else {
+        updateDashboardForStudent(parseInt(val));
+      }
+    });
+    
+    /* Splash Page: Hide when Start button is clicked using both click and touchend */
+    const splashStartButton = document.getElementById("startButton");
+    function hideSplash() {
+      const splash = document.getElementById("splashPage");
+      splash.style.opacity = 0;
+      setTimeout(() => {
+        splash.style.display = "none";
+      }, 1500);
+    }
+    splashStartButton.addEventListener("click", hideSplash);
+    splashStartButton.addEventListener("touchend", function(e) {
+      e.preventDefault();
+      hideSplash();
+    });
+    
+  </script>
+</body>
+</html>
