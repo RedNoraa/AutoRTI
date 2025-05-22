@@ -126,10 +126,17 @@
     .scoreboard-container {
       display: none;
     }
-    /* Hide the Google Sheets URL */
-    .webAppId {
-      color: transparent;
+    .success-message, .error-message {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 10px 20px;
+      border-radius: 5px;
+      z-index: 1050;
+      color: #fff;
     }
+    .success-message { background-color: #28a745; }
+    .error-message { background-color: #dc3545; }
     /* Print-friendly CSS */
     @media print {
       nav, .nav-select, .utility-buttons, .btn, .modal, select, input[type="date"], input[type="number"] {
@@ -258,9 +265,10 @@
             <h2 class="h4">Leaderboard</h2>
             <canvas id="leaderboardChart" width="400" height="200"></canvas>
           </div>
+          <!-- Event Log -->
+          <div id="eventLog" class="mt-3"></div>
         </div>
       </div>
-      <div class="webAppId" id="webAppId">Google Sheets Web App URL: </div>
     </div>
     <!-- End Gameplay Section -->
 
@@ -435,8 +443,13 @@
      * Global Variables & Google Sheets URL
      ***********************************/
     const GOOGLE_SHEETS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbweOLW-hytrrV7QO4d1blVf_vxvuoIKZc2zKvqDKXzMT4r14Kk7-UxcHGOsMRUvlyTgyQ/exec';
-    document.getElementById('webAppId').textContent += GOOGLE_SHEETS_WEB_APP_URL;
-    
+
+    // Prompt for the user name to store with each entry
+    const teacherName = localStorage.getItem('teacherName') || prompt('Enter your name');
+    if (teacherName) {
+      localStorage.setItem('teacherName', teacherName);
+    }
+
     // Gameplay Data Structures – always start with an empty nameList
     const nameList = [];
     const timerData = [];
@@ -513,17 +526,22 @@
       }
     }
     async function sendToGoogleSheets(data) {
+      const payload = {
+        ...data,
+        sheetName: data.sheetName || (currentRosterName ? currentRosterName : 'Misc'),
+        username: teacherName || 'Anonymous'
+      };
       try {
-        console.log('Sending data to Google Sheets:', data);
+        console.log('Sending data to Google Sheets:', payload);
         const response = await fetch(GOOGLE_SHEETS_WEB_APP_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
+          body: JSON.stringify(payload)
         });
         if (!response.ok) { throw new Error('Failed to send data to Google Sheets'); }
-        console.log('Data sent to Google Sheets:', data);
+        console.log('Data sent to Google Sheets:', payload);
         displaySuccessMessage('Data successfully sent to Google Sheets');
-        logEvent(`Sent to Sheets: ${JSON.stringify(data)}`);
+        logEvent(`Sent to Sheets: ${JSON.stringify(payload)}`);
       } catch (error) {
         console.error('Error sending data to Google Sheets:', error);
         displayErrorMessage('Failed to send data to Google Sheets');
@@ -820,7 +838,6 @@
         timerData[index].startTime = new Date(timerData[index].startTime.getTime() + timerData[index].viInterval * 1000);
         sendToGoogleSheets({
           name: nameList[index].name,
-          timestamp: new Date().toLocaleString(),
           points: timerData[index].points,
           isPaused: timerData[index].isPaused,
           reason: timerData[index].pauseReason
@@ -867,7 +884,6 @@
         }
         sendToGoogleSheets({
           name: nameList[index].name,
-          timestamp: new Date().toLocaleString(),
           points: timerData[index].points,
           isPaused: timerData[index].isPaused,
           reason: timerData[index].pauseReason
@@ -914,7 +930,6 @@
       if (bonusSound.readyState >= 2) { bonusSound.currentTime = 0; bonusSound.play(); }
       sendToGoogleSheets({
         name: nameList[index].name,
-        timestamp: new Date().toLocaleString(),
         points: timerData[index].points,
         isPaused: timerData[index].isPaused,
         reason: timerData[index].pauseReason
@@ -1382,7 +1397,11 @@
         rosters[rosterName] = [...nameList];
         currentRosterName = rosterName;
         updateRosterOptions();
-        sendToGoogleSheets({ rosterName, roster: rosters[rosterName] });
+        sendToGoogleSheets({
+          sheetName: 'Rosters',
+          rosterName,
+          roster: JSON.stringify(rosters[rosterName])
+        });
         displaySuccessMessage('Roster saved successfully');
         saveToLocalStorage();
         logEvent(`Roster saved: ${rosterName}`);
