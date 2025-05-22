@@ -130,6 +130,30 @@
     .webAppId {
       color: transparent;
     }
+
+    /* Success and Error Message Styles */
+    .success-message,
+    .error-message {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 10px 20px;
+      border-radius: 4px;
+      z-index: 9999;
+      opacity: 0.95;
+      animation: fadeOut 0.5s ease-out 2.5s forwards;
+    }
+    .success-message {
+      background-color: #d4edda;
+      color: #155724;
+    }
+    .error-message {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+    @keyframes fadeOut {
+      to { opacity: 0; }
+    }
     /* Print-friendly CSS */
     @media print {
       nav, .nav-select, .utility-buttons, .btn, .modal, select, input[type="date"], input[type="number"] {
