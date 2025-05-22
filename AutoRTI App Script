@@ -6,6 +6,16 @@ function doPost(e) {
   } catch (err) {
     data = e.parameter;
   }
+  // Parse any nested JSON strings
+  for (var key in data) {
+    if (typeof data[key] === 'string') {
+      try {
+        data[key] = JSON.parse(data[key]);
+      } catch (err) {
+        // leave value as is if parsing fails
+      }
+    }
+  }
   
   // Get tab name, username, and fields
   var sheetName = data.sheetName || "Misc";
