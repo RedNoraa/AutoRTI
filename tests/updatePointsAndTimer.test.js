@@ -6,7 +6,7 @@ describe('updatePointsAndTimer', () => {
   let window;
 
   beforeAll(() => {
-    const htmlPath = path.join(__dirname, '..', 'HTML');
+    const htmlPath = path.join(__dirname, '..', 'index.html');
     const htmlContent = fs.readFileSync(htmlPath, 'utf-8');
     const scriptMatch = htmlContent.match(/<script>([\s\S]*?)<\/script>/);
     if (!scriptMatch) {

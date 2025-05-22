@@ -5,7 +5,7 @@ Repository for Auto RTI materials
 
 The repository contains:
 
-- **HTML** – the main front-end page for the application.
+- **index.html** – the main front-end page for the application.
 - **AutoRTI App Script** – Google Apps Script that receives data and writes to a Google Sheet.
 
 Follow the steps below to deploy both pieces and connect them.
@@ -30,7 +30,7 @@ Follow the steps below to deploy both pieces and connect them.
 
 ### 3. Configure the HTML Page
 
-1. Open the `HTML` file in a text editor.
+1. Open the `index.html` file in a text editor.
 2. Around line 437 you will find the following constant:
    ```javascript
    const GOOGLE_SHEETS_WEB_APP_URL = 'https://script.google.com/macros/.../exec';
