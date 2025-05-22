@@ -1233,9 +1233,16 @@
      ***********************************/
     function populateDashboardStudentSelect() {
       const select = document.getElementById("studentSelectDashboard");
-      select.innerHTML = '<option value="all">All Students</option>';
+      select.innerHTML = "";
+      const allOption = document.createElement("option");
+      allOption.value = "all";
+      allOption.textContent = "All Students";
+      select.appendChild(allOption);
       nameList.forEach((player, index) => {
-        select.innerHTML += `<option value="${index}">${player.name}</option>`;
+        const option = document.createElement("option");
+        option.value = index;
+        option.textContent = player.name;
+        select.appendChild(option);
       });
     }
     function updateDashboardForStudent(index) {
@@ -1249,11 +1256,39 @@
         const percentEarned = Math.round((reg / available) * 100);
         const pauseEvents = timerData[index].timestamps.length;
         const summaryDiv = document.querySelector(".student-summary");
-        summaryDiv.innerHTML = `<h4>Student Summary for ${nameList[index].name}</h4>
-          <p><strong>Total Points Earned:</strong> ${total}</p>
-          <p><strong>Bonus Points Earned:</strong> ${bonus}</p>
-          <p><strong>Percent of Available Non-Bonus Points Earned:</strong> ${percentEarned}%</p>
-          <p><strong>Pause Events:</strong> ${pauseEvents}</p>`;
+        summaryDiv.innerHTML = "";
+        const heading = document.createElement("h4");
+        heading.textContent = `Student Summary for ${nameList[index].name}`;
+        summaryDiv.appendChild(heading);
+
+        const totalP = document.createElement("p");
+        const totalStrong = document.createElement("strong");
+        totalStrong.textContent = "Total Points Earned:";
+        totalP.appendChild(totalStrong);
+        totalP.appendChild(document.createTextNode(` ${total}`));
+        summaryDiv.appendChild(totalP);
+
+        const bonusP = document.createElement("p");
+        const bonusStrong = document.createElement("strong");
+        bonusStrong.textContent = "Bonus Points Earned:";
+        bonusP.appendChild(bonusStrong);
+        bonusP.appendChild(document.createTextNode(` ${bonus}`));
+        summaryDiv.appendChild(bonusP);
+
+        const percentP = document.createElement("p");
+        const percentStrong = document.createElement("strong");
+        percentStrong.textContent = "Percent of Available Non-Bonus Points Earned:";
+        percentP.appendChild(percentStrong);
+        percentP.appendChild(document.createTextNode(` ${percentEarned}%`));
+        summaryDiv.appendChild(percentP);
+
+        const pauseP = document.createElement("p");
+        const pauseStrong = document.createElement("strong");
+        pauseStrong.textContent = "Pause Events:";
+        pauseP.appendChild(pauseStrong);
+        pauseP.appendChild(document.createTextNode(` ${pauseEvents}`));
+        summaryDiv.appendChild(pauseP);
+
         let reasonCounts = {};
         timerData[index].timestamps.forEach(event => {
           let reason = event.reason || "off-task";
@@ -1304,11 +1339,38 @@
       document.getElementById("rosterDisplay").textContent = rosterDisplay;
       // In class view, show aggregated percent of available non-bonus points.
       const percentDisplay = typeof percentEarnedClass === "number" ? `${percentEarnedClass}%` : "N/A";
-      summaryDiv.innerHTML = `<h4>${rosterDisplay} Summary</h4>
-         <p><strong>Percent of Available Non-Bonus Points Earned (Class):</strong> ${percentDisplay}</p>
-         <p><strong>Total Bonus Points Earned (Class):</strong> ${totalBonus}</p>
-         <p><strong>Total Pause Events:</strong> ${totalPauseEvents}</p>
-         <p><strong>Last Incident:</strong> ${lastIncidentDisplay}</p>`;
+      summaryDiv.innerHTML = "";
+      const heading = document.createElement("h4");
+      heading.textContent = `${rosterDisplay} Summary`;
+      summaryDiv.appendChild(heading);
+
+      const percentP = document.createElement("p");
+      const percentStrong = document.createElement("strong");
+      percentStrong.textContent = "Percent of Available Non-Bonus Points Earned (Class):";
+      percentP.appendChild(percentStrong);
+      percentP.appendChild(document.createTextNode(` ${percentDisplay}`));
+      summaryDiv.appendChild(percentP);
+
+      const bonusP = document.createElement("p");
+      const bonusStrong = document.createElement("strong");
+      bonusStrong.textContent = "Total Bonus Points Earned (Class):";
+      bonusP.appendChild(bonusStrong);
+      bonusP.appendChild(document.createTextNode(` ${totalBonus}`));
+      summaryDiv.appendChild(bonusP);
+
+      const pauseP = document.createElement("p");
+      const pauseStrong = document.createElement("strong");
+      pauseStrong.textContent = "Total Pause Events:";
+      pauseP.appendChild(pauseStrong);
+      pauseP.appendChild(document.createTextNode(` ${totalPauseEvents}`));
+      summaryDiv.appendChild(pauseP);
+
+      const lastP = document.createElement("p");
+      const lastStrong = document.createElement("strong");
+      lastStrong.textContent = "Last Incident:";
+      lastP.appendChild(lastStrong);
+      lastP.appendChild(document.createTextNode(` ${lastIncidentDisplay}`));
+      summaryDiv.appendChild(lastP);
       
       // Update the dashboard points chart using the same configuration as gameplay leaderboard.
       updateLeaderboard(); // This updates the gameplay leaderboard.
